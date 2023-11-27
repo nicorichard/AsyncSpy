@@ -46,28 +46,28 @@ public class AsyncSpy<Output, Failure: Error> {
     @MainActor
     @discardableResult
     public func next() async throws -> Output {
+        defer { index += 1 }
+        
         if values.count > index {
-            let value = values[index]
-            index += 1
-            return value
+            return values[index]
         }
         
         if completion != nil {
             throw AsyncSpyError.completed
         }
         
-        var iterator = values.publisher
+        var iterator = $values
+            .dropFirst()
             .timeout(.seconds(timeout), scheduler: RunLoop.main)
             .values
             .makeAsyncIterator()
         
-        if let next = await iterator.next() {
-            return next
+        guard let next = await iterator.next() else {
+            throw AsyncSpyError.completedWhileWaiting
         }
         
-        throw AsyncSpyError.completedWhileWaiting
+        return next.last!
     }
-    
     
     @MainActor
     @discardableResult
