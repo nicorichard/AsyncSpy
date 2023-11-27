@@ -20,22 +20,30 @@ public class AsyncSpy<Output, Failure: Error> {
     
     var cancellable: AnyCancellable?
     
-    private(set) var index: Int = 0
-    @Published internal(set) public var values: [Output] = []
-    @Published internal(set) public var completion: Completion?
+    @Published var index: Int = 0
+    @Published var values: [Output] = []
+    @Published var completion: Completion?
+    
+    let file: StaticString
+    let line: UInt
     
     // TODO: Expose
     private let timeout: Int = 10
     private let exhaustivity: Exhaustivity = .all(requireCompletion: false)
     
+    init(file: StaticString, line: UInt) {
+        self.file = file
+        self.line = line
+    }
+    
     deinit {
         switch exhaustivity {
             case .all(let requireCompletion):
                 if requireCompletion && completion == nil {
-                    XCTFail("Subject did not complete")
+                    XCTFail("Subject did not complete", file: file, line: line)
                 }
                 if values.count > index {
-                    XCTFail("Did not exhaust all values. Values remaining: \(values[index...])")
+                    XCTFail("Did not exhaust all values. Values remaining: \(values[index...])", file: file, line: line)
                 }
             case .none:
                 break
@@ -45,19 +53,15 @@ public class AsyncSpy<Output, Failure: Error> {
     
     @MainActor
     @discardableResult
-    public func next() async throws -> Output {
+    func next() async throws -> Output {
         defer { index += 1 }
         
-        if values.count > index {
-            return values[index]
-        }
-        
-        if completion != nil {
+        if completion != nil && values.count <= index {
             throw AsyncSpyError.completed
         }
-        
+
         var iterator = $values
-            .dropFirst()
+            .drop(while: { $0.count <= self.index })
             .timeout(.seconds(timeout), scheduler: RunLoop.main)
             .values
             .makeAsyncIterator()
@@ -66,7 +70,7 @@ public class AsyncSpy<Output, Failure: Error> {
             throw AsyncSpyError.completedWhileWaiting
         }
         
-        return next.last!
+        return next[index]
     }
     
     @MainActor
