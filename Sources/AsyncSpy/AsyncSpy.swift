@@ -60,17 +60,16 @@ public class AsyncSpy<Output, Failure: Error> {
             throw AsyncSpyError.completed
         }
 
-        var iterator = $values
+        let publisher = $values
+            .subscribe(on: RunLoop.main)
             .drop(while: { $0.count <= self.index })
             .timeout(.seconds(timeout), scheduler: RunLoop.main)
-            .values
-            .makeAsyncIterator()
         
-        guard let next = await iterator.next() else {
-            throw AsyncSpyError.completedWhileWaiting
+        for await value in publisher.values {
+            return value[index]
         }
         
-        return next[index]
+        throw AsyncSpyError.completedWhileWaiting
     }
     
     @MainActor
