@@ -60,4 +60,14 @@ final class AsyncSpyTests: XCTestCase {
         
         await spy.expectError()
     }
+    
+    func testExample_5() async throws {
+        let subject = [1, 2, 3].publisher
+        
+        let spy = AsyncSpy(subject: subject.values)
+        
+        await spy.expect(1)
+        await spy.expect(2)
+        await spy.expect(3)
+    }
 }
