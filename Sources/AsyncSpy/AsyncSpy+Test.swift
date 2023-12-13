@@ -62,6 +62,8 @@ extension AsyncSpy where Output: Equatable {
                 XCTFail("Subject has already completed", file: file, line: line)
             case AsyncSpyError.completedWhileWaiting:
                 XCTFail("Subject completed before producing a value", file: file, line: line)
+            case AsyncSpyError.timeout:
+                XCTFail("Timed out. Waited \(timeout) seconds for the subject to produce a value", file: file, line: line)
             default:
                 XCTFail("Unexpected error: \(error)", file: file, line: line)
         }

@@ -9,8 +9,8 @@ enum AsyncSpyError: Error {
 
 public class AsyncSpy<Output, Failure: Error> {
     public enum Exhaustivity {
-        case all(requireCompletion: Bool)
-        case none
+        case on(requireCompletion: Bool)
+        case off
     }
     
     public enum Completion {
@@ -26,29 +26,33 @@ public class AsyncSpy<Output, Failure: Error> {
     
     let file: StaticString
     let line: UInt
+    let timeout: Int
+    let exhaustivity: Exhaustivity
     
-    // TODO: Expose
-    private let timeout: Int = 10
-    private let exhaustivity: Exhaustivity = .all(requireCompletion: false)
-    
-    init(file: StaticString, line: UInt) {
+    public init(
+        file: StaticString,
+        line: UInt,
+        timeout: Int = 10,
+        exhaustivity: Exhaustivity = .on(requireCompletion: false)
+    ) {
         self.file = file
         self.line = line
+        self.timeout = timeout
+        self.exhaustivity = exhaustivity
     }
     
     deinit {
         switch exhaustivity {
-            case .all(let requireCompletion):
+            case .on(let requireCompletion):
                 if requireCompletion && completion == nil {
                     XCTFail("Subject did not complete", file: file, line: line)
                 }
                 if values.count > index {
                     XCTFail("Did not exhaust all values. Values remaining: \(values[index...])", file: file, line: line)
                 }
-            case .none:
+            case .off:
                 break
         }
-        
     }
     
     @MainActor
