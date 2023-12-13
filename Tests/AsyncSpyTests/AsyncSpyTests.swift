@@ -2,8 +2,9 @@ import XCTest
 import Combine
 @testable import AsyncSpy
 
-final class AsyncSpyTests: XCTestCase {
-    func testExample() async throws {
+
+final class AsyncSpyNextTests: XCTestCase {
+    func test_nextOnSimpleSynchronousPublish() async throws {
         let subject = PassthroughSubject<Int, Never>()
         
         let spy = AsyncSpy(subject: subject)
@@ -20,54 +21,46 @@ final class AsyncSpyTests: XCTestCase {
         }
     }
     
-    func testExample_2() async throws {
-        let subject = PassthroughSubject<Int, Never>()
-        
+    func test_lateSubscribeToCurrentValueSubject() async throws {
+        let subject = CurrentValueSubject<Int, Never>(1)
         let spy = AsyncSpy(subject: subject)
+        await spy.expect(1)
+    }
+    
+    func test_nextOnImmediateDebounce() async throws {
+        let subject = PassthroughSubject<Int, Never>()
+        let publisher = subject.debounce(for: 0, scheduler: ImmediateScheduler.shared)
+        
+        let spy = AsyncSpy(subject: publisher)
         
         subject.send(1)
         subject.send(2)
-        
-        await spy.expect(1)
-        await spy.expect(2)
-    }
-    
-    func testExample_3() async throws {
-        struct State: Equatable {
-            var title: String
+
+        try await spy.next {
+            XCTAssertEqual($0, 1)
         }
         
-        let subject = PassthroughSubject<State, Never>()
-        
-        let spy = AsyncSpy(subject: subject)
-        
-        subject.send(State(title: "1"))
-        subject.send(State(title: "2"))
-        
-        await spy.expectAny()
-        await spy.expectMutation {
-            $0.title = "2"
+        try await spy.next {
+            XCTAssertEqual($0, 2)
         }
     }
     
-    func testExample_4() async throws {
-        struct TestError: Error {}
-        let subject = PassthroughSubject<Int, TestError>()
+    func test_nextOnRunloopMainDebounce() async throws {
+        let subject = PassthroughSubject<Int, Never>()
+        let publisher = subject.debounce(for: 0, scheduler: RunLoop.main)
         
-        let spy = AsyncSpy(subject: subject)
+        let spy = AsyncSpy(subject: publisher)
         
-        subject.send(completion: .failure(TestError()))
+        subject.send(1)
         
-        await spy.expectError()
-    }
-    
-    func testExample_5() async throws {
-        let subject = [1, 2, 3].publisher
+        try await spy.next {
+            XCTAssertEqual($0, 1)
+        }
         
-        let spy = AsyncSpy(subject: subject.values)
+        subject.send(2)
         
-        await spy.expect(1)
-        await spy.expect(2)
-        await spy.expect(3)
+        try await spy.next {
+            XCTAssertEqual($0, 2)
+        }
     }
 }
