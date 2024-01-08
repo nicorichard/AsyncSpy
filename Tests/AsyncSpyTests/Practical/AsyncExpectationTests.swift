@@ -1,7 +1,7 @@
 import Foundation
 import XCTest
 import Combine
-@testable import AsyncSpy
+import AsyncSpy
 
 class AsyncExpectationTests: XCTestCase {
     func test_valueExpectationForSimplePublisher() async throws {

@@ -20,7 +20,7 @@ public class AsyncSpy<Output, Failure: Error> {
     
     var cancellable: AnyCancellable?
     
-    @Published var index: Int = 0
+    @Published var nextIndex: Int = 0
     @Published var values: [Output] = []
     @Published var completion: Completion?
     
@@ -47,8 +47,8 @@ public class AsyncSpy<Output, Failure: Error> {
                 if requireCompletion && completion == nil {
                     XCTFail("Subject did not complete", file: file, line: line)
                 }
-                if values.count > index {
-                    XCTFail("Did not exhaust all values. Values remaining: \(values[index...])", file: file, line: line)
+                if values.count > nextIndex {
+                    XCTFail("Did not exhaust all values. Values remaining: \(values[nextIndex...])", file: file, line: line)
                 }
             case .off:
                 break
@@ -58,19 +58,19 @@ public class AsyncSpy<Output, Failure: Error> {
     @MainActor
     @discardableResult
     func next() async throws -> Output {
-        defer { index += 1 }
+        defer { nextIndex += 1 }
         
-        if completion != nil && values.count <= index {
+        if completion != nil && values.count <= nextIndex {
             throw AsyncSpyError.completed
         }
 
         let publisher = $values
             .subscribe(on: RunLoop.main)
-            .drop(while: { $0.count <= self.index })
+            .drop(while: { $0.count <= self.nextIndex })
             .timeout(.seconds(timeout), scheduler: RunLoop.main)
         
         for await value in publisher.values {
-            return value[index]
+            return value[nextIndex]
         }
         
         throw AsyncSpyError.completedWhileWaiting

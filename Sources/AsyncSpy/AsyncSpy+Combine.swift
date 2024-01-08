@@ -11,14 +11,14 @@ extension AsyncSpy {
         self.cancellable = subject
             .receive(on: RunLoop.main)
             .sink(receiveCompletion: { [weak self] completion in
-            switch completion {
-                case .finished:
-                    self?.completion = .finished
-                case .failure(let error):
-                    self?.completion = .failure(error)
-            }
-        }, receiveValue: { [weak self] value in
-            self?.values.append(value)
-        })
+                switch completion {
+                    case .finished:
+                        self?.completion = .finished
+                    case .failure(let error):
+                        self?.completion = .failure(error)
+                }
+            }, receiveValue: { [weak self] value in
+                self?.values.append(value)
+            })
     }
 }

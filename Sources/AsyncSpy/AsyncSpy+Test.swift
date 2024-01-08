@@ -39,11 +39,11 @@ extension AsyncSpy where Output: Equatable {
     
     public func expectMutation(file: StaticString = #file, line: UInt = #line, _ mutate: (inout Output) -> Void) async {
         do {
-            if values.count <= index {
+            if values.count <= nextIndex {
                 XCTFail("Subject has not produced a value yet.", file: file, line: line)
             }
             
-            var current = values[index]
+            var current = values[nextIndex]
             let next = try await next()
             
             mutate(&current)

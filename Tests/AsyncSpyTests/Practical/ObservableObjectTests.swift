@@ -1,6 +1,6 @@
 import Foundation
 import XCTest
-@testable import AsyncSpy
+import AsyncSpy
 
 private class State: ObservableObject {
     @Published var username: String = ""
