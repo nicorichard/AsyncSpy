@@ -91,7 +91,7 @@ public class AsyncSpy<Output, Failure: Error> {
 
 extension AsyncSpy {
     @MainActor
-    public func next(_ body: (Output) -> Void) async throws {
-        body(try await next())
+    public func next(@_implicitSelfCapture _ body: (Output) async throws -> Void) async throws {
+        try await body(try await next())
     }
 }
